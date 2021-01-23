@@ -1,0 +1,43 @@
+{
+    "id": "G9KhCR2SFh8HeoQXIPAn",
+    "name": "Recursive Makefiles",
+    "dod": "",
+    "description": "Learn how we implement recursive Makefiles using the sub-make technique.",
+    "summary": "As you've seen, this technique allows us to run from the correct directory using the correct Make flags, and output our build artifacts to the right directory (which can be chosen by the user).",
+    "hunksOrder": [
+        "makefile_0"
+    ],
+    "tests": [],
+    "hints": [],
+    "play_mode": "walkthrough",
+    "swimmPatch": {
+        "makefile": {
+            "diffType": "MODIFIED",
+            "fileDiffHeader": "diff --git a/makefile b/makefile\nindex b0e4767..b0e4767 100644\n--- a/makefile\n+++ b/makefile",
+            "hunks": [
+                {
+                    "swimmHunkMetadata": {
+                        "hunkComments": [
+                            "First, we make sure that no sub-make has been run yet.",
+                            "This if statement contains the sub-make setup process."
+                        ]
+                    },
+                    "hunkDiffLines": [
+                        "@@ -27,7 +27,6 @@",
+                        " # descending is started. They are now explicitly listed as the",
+                        " # prepare rule.",
+                        " ",
+                        "-ifneq ($(sub_make_done),1)",
+                        " ",
+                        " # Do not use make's built-in rules and variables",
+                        " # (this increases performance and avoids hard-to-debug behaviour)"
+                    ]
+                }
+            ]
+        }
+    },
+    "app_version": "0.3.4-0",
+    "file_version": "1.0.4",
+    "diff": "diff --git a/makefile b/makefile\nindex b0e4767..b0e4767 100644\n--- a/makefile\n+++ b/makefile\n@@ -27,7 +27,6 @@\n # descending is started. They are now explicitly listed as the\n # prepare rule.\n \n-ifneq ($(sub_make_done),1)\n \n # Do not use make's built-in rules and variables\n # (this increases performance and avoids hard-to-debug behaviour)\n",
+    "last_commit_sha_for_swimm_patch": "9c6e45d52f1ce8883744fe9001f632defffe697f"
+}
