@@ -141,7 +141,7 @@ ld-option = $(call try-run, $(LD) $(KBUILD_LDFLAGS) $(1) -v,$(1),$(2),$(3))
 
 # ld-version
 # Note this is mainly for HJ Lu's 3 number binutil versions
-ld-version = $(shell $(LD) --version | $(srctree)/scripts/ld-version.sh)
+ld-version = $(shell $(LD) --version | $(SRC_TREE)/scripts/ld-version.sh)
 
 # ld-ifversion
 # Usage:  $(call ld-ifversion, -ge, 22252, y)
@@ -150,22 +150,16 @@ ld-ifversion = $(shell [ $(ld-version) $(1) $(2) ] && echo $(3) || echo $(4))
 ######
 
 ###
-# Shorthand for $(Q)$(MAKE) -f scripts/Makefile.build obj=
+# Shorthand for $(Q)$(MAKE) -f make/build.mk BUILD_DIR=
 # Usage:
 # $(Q)$(MAKE) $(build)=dir
-build := -f $(srctree)/scripts/Makefile.build obj
+build := -f $(SRC_TREE)/make/build.mk BUILD_DIR
 
 ###
-# Shorthand for $(Q)$(MAKE) -f scripts/Makefile.dtbinst obj=
-# Usage:
-# $(Q)$(MAKE) $(dtbinst)=dir
-dtbinst := -f $(srctree)/scripts/Makefile.dtbinst obj
-
-###
-# Shorthand for $(Q)$(MAKE) -f scripts/Makefile.clean obj=
+# Shorthand for $(Q)$(MAKE) -f make/clean.mk BUILD_DIR=
 # Usage:
 # $(Q)$(MAKE) $(clean)=dir
-clean := -f $(srctree)/scripts/Makefile.clean obj
+clean := -f $(SRC_TREE)/make/clean.mk BUILD_DIR
 
 # echo command.
 # Short version is used, if $(quiet) equals `quiet_', otherwise full one.
@@ -283,7 +277,7 @@ endif
 # makefile.
 #
 # Also, if the filename is a relative filename and exists in the source
-# tree but not the build tree, define FOO_SRCPREFIX as $(srctree)/ to
+# tree but not the build tree, define FOO_SRCPREFIX as $(SRC_TREE)/ to
 # be prefixed to *both* command invocation and dependencies.
 #
 # Note: We also print the filenames in the quiet_cmd_foo text, and
@@ -304,8 +298,8 @@ $(1)_FILENAME := $$(subst \\,\,$$(subst \$$(quote),$$(quote),$$(subst $$(space_e
 ifneq ($$(patsubst /%,%,$$(firstword $$($(1)_FILENAME))),$$(firstword $$($(1)_FILENAME)))
 else
 ifeq ($$(wildcard $$($(1)_FILENAME)),)
-ifneq ($$(wildcard $$(srctree)/$$($(1)_FILENAME)),)
-$(1)_SRCPREFIX := $(srctree)/
+ifneq ($$(wildcard $$(SRC_TREE)/$$($(1)_FILENAME)),)
+$(1)_SRCPREFIX := $(SRC_TREE)/
 endif
 endif
 endif

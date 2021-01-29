@@ -190,24 +190,24 @@ MAKEFLAGS += --no-print-directory
 
 ifeq ($(ABS_SRC_TREE),$(ABS_OBJ_TREE))
   # building in the source tree
-  SRCTREE := .
+  SRC_TREE := .
   BUILDING_OUT_OF_SRC_TREE :=
 else
   ifeq ($(ABS_SRC_TREE)/,$(dir $(ABS_OBJ_TREE)))
     # building in a subdirectory of the source tree
-    SRCTREE := ..
+    SRC_TREE := ..
   else
-    SRCTREE := $(ABS_SRC_TREE)
+    SRC_TREE := $(ABS_SRC_TREE)
   endif
   BUILDING_OUT_OF_SRC_TREE := 1
 endif
 
 ifneq ($(ABS_SRC_TREE),)
-  SRCTREE := $(ABS_SRC_TREE)
+  SRC_TREE := $(ABS_SRC_TREE)
 endif
 
-objtree		:= .
-VPATH		:= $(SRCTREE)
+OBJ_TREE		:= .
+VPATH		:= $(SRC_TREE)
 
 include make/build_utils.mk
 
@@ -264,17 +264,17 @@ PHONY += outputmakefile
 # ignore whole output directory
 outputmakefile:
 ifdef BUILDING_OUT_OF_SRC_TREE
-	$(Q)if [ -f $(SRCTREE)/.config -o \
-		 -d $(SRCTREE)/include/config -o \
-		 -d $(SRCTREE)/arch/$(SRCARCH)/include/generated ]; then \
+	$(Q)if [ -f $(SRC_TREE)/.config -o \
+		 -d $(SRC_TREE)/include/config -o \
+		 -d $(SRC_TREE)/arch/$(SRCARCH)/include/generated ]; then \
 		echo >&2 "***"; \
 		echo >&2 "*** The source tree is not clean, please run 'make$(if $(findstring command line, $(origin ARCH)), ARCH=$(ARCH)) mrproper'"; \
 		echo >&2 "*** in $(ABS_SRC_TREE)";\
 		echo >&2 "***"; \
 		false; \
 	fi
-	$(Q)ln -fsn $(SRCTREE) src
-	$(Q)$(SHELL) $(SRCTREE)/scripts/mkmakefile $(SRCTREE)
+	$(Q)ln -fsn $(SRC_TREE) src
+	$(Q)$(SHELL) $(SRC_TREE)/scripts/mkmakefile.sh $(SRC_TREE)
 	$(Q)test -e .gitignore || \
 	{ echo "# This is a build directory, ignore it."; echo "*"; } > .gitignore
 endif
@@ -298,21 +298,16 @@ BUILD_DIRS := \
 # Execute the build process.
 all: descend
 
+# The build process itself:
+# Descent and build each build directory.
 PHONY := descend $(BUILD_DIRS)
 descend: $(BUILD_DIRS)
-$(BUILD_DIRS):
+$(BUILD_DIRS): prepare
 	$(Q)$(MAKE) $(build)=$@
 
-
-app_dir := axion/
-
-# The all: target is the default when no target is given on the
-# command line.
-# This allow a user to issue only 'make' to build a kernel including modules
-# Defaults to app, but the platform makefile usually adds further targets
-app_obj := \
-	main.o
-app_obj := $(addprefix app_dir/, $(app_obj))
+# Build preparation.
+PHONY += prepare
+prepare: outputmakefile
 
 endif # ifeq ($(need-sub-make),)
 
