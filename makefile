@@ -135,7 +135,7 @@ ifeq ($(ABS_OBJ_TREE),$(CURDIR))
 # Suppress "Entering directory ..." unless we are changing the work directory.
 MAKEFLAGS += --no-print-directory
 else
-need-sub-make := 1
+NEED_SUB_MAKE := 1
 endif
 
 ABS_SRC_TREE := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -150,7 +150,7 @@ ifneq ($(ABS_SRC_TREE),$(ABS_OBJ_TREE))
 # This does not become effective immediately because MAKEFLAGS is re-parsed
 # once after the Makefile is read. We need to invoke sub-make.
 MAKEFLAGS += --include-dir=$(ABS_SRC_TREE)
-need-sub-make := 1
+NEED_SUB_MAKE := 1
 endif
 
 this-makefile := $(lastword $(MAKEFILE_LIST))
@@ -158,7 +158,7 @@ this-makefile := $(lastword $(MAKEFILE_LIST))
 ifneq ($(filter 3.%,$(MAKE_VERSION)),)
 # 'MAKEFLAGS += -rR' does not immediately become effective for GNU Make 3.x
 # We need to invoke sub-make to avoid implicit rules in the top Makefile.
-need-sub-make := 1
+NEED_SUB_MAKE := 1
 # Cancel implicit rules for this Makefile.
 $(this-makefile): ;
 endif
@@ -166,7 +166,7 @@ endif
 export ABS_SRC_TREE ABS_OBJ_TREE
 export SUB_MAKE_DONE := 1
 
-ifeq ($(need-sub-make),1)
+ifeq ($(NEED_SUB_MAKE),1)
 
 PHONY += $(MAKECMDGOALS) __sub-make
 
@@ -177,11 +177,11 @@ $(filter-out $(this-makefile), $(MAKECMDGOALS)) __all: __sub-make
 __sub-make:
 	$(Q)$(MAKE) -C $(ABS_OBJ_TREE) -f $(ABS_SRC_TREE)/Makefile $(MAKECMDGOALS)
 
-endif # need-sub-make
+endif # NEED_SUB_MAKE
 endif # SUB_MAKE_DONE
 
 # We process the rest of the Makefile if this is the final invocation of make
-ifeq ($(need-sub-make),)
+ifeq ($(NEED_SUB_MAKE),)
 
 # Do not print "Entering directory ...",
 # but we want to display it when entering to the output directory
@@ -206,33 +206,34 @@ ifneq ($(ABS_SRC_TREE),)
   SRC_TREE := $(ABS_SRC_TREE)
 endif
 
-OBJ_TREE		:= .
-VPATH		:= $(SRC_TREE)
+OBJ_TREE := .
+
+export BUILDING_OUT_OF_SRC_TREE SRC_TREE OBJ_TREE
 
 include make/build_utils.mk
 
-# include make/infer_platform.mk
+include make/infer_platform.mk
 
 # Make variables (CC, etc...)
-CPP		= $(CC) -E
-ifneq ($(LLVM),)
-  CC		= clang
-  LD		= ld.lld
-  AR		= llvm-ar
-  NM		= llvm-nm
-  OBJCOPY		= llvm-objcopy
-  OBJDUMP		= llvm-objdump
-  READELF		= llvm-readelf
-  STRIP		= llvm-strip
+CPP = $(CC) -E
+ifneq ($(GNU),)
+  CC := gcc
+  LD := ld
+  AR := ar
+  NM := nm
+  OBJCOPY := objcopy
+  OBJDUMP := objdump
+  READELF := readelf
+  STRIP := strip
 else
-  CC		= gcc
-  LD		= ld
-  AR		= ar
-  NM		= nm
-  OBJCOPY		= objcopy
-  OBJDUMP		= objdump
-  READELF		= readelf
-  STRIP		= strip
+  CC := clang
+  LD = $(CC) # Might to use ld.lld in the future.
+  AR := llvm-ar
+  NM := llvm-nm
+  OBJCOPY := llvm-objcopy
+  OBJDUMP := llvm-objdump
+  READELF := llvm-readelf
+  STRIP := llvm-strip
 endif
 
 SHELL := bash
@@ -240,30 +241,46 @@ SHELL := bash
 CFLAGS := -Wall -Werror
 LDFLAGS :=
 
+# Build mode setup.
 MODE_DEBUG := debug
 MODE_RELEASE := release
 
 ifeq ($(MODE),)
-  MODE = debug
+  MODE := debug
 endif
 
 ifeq ($(MODE), $(MODE_DEBUG))
-  CFLAGS += -g -D_DEBUG
+  CFLAGS += -g -DMODE_DEBUG
 else ifeq ($(MODE), $(MODE_RELEASE))
-  LDFLAGS += -O3
+  LDFLAGS += -O3 -DMODE_RELEASE
 else
   $(error Unsupported build mode: [$(MODE)])
 endif
 
-PHONY += outputmakefile
+# Target extensions.
+EXE_EXT :=
+SHARED_EXT := so
+ARCHIVE_EXT :=
+
+export CPP CC LD AR NM OBJCOPY OBJDUMP READELF STRIP
+export SHELL
+export CFLAGS LDFLAGS
+export EXE_EXT SHARED_EXT ARCHIVE_EXT
+
+# ===========================================================================
+# Build preparation.
+PHONY += fixdep
+fixdep:
+	$(Q)$(MAKE) $(build)=$@
+
 # Before starting out-of-tree build, make sure the source tree is clean.
 # outputmakefile generates a Makefile in the output directory, if using a
 # separate output directory. This allows convenient use of make in the
 # output directory.
 # At the same time when output Makefile generated, generate .gitignore to
 # ignore whole output directory
-outputmakefile:
 ifdef BUILDING_OUT_OF_SRC_TREE
+makefile:
 	$(Q)if [ -f $(SRC_TREE)/.config -o \
 		 -d $(SRC_TREE)/include/config -o \
 		 -d $(SRC_TREE)/arch/$(SRCARCH)/include/generated ]; then \
@@ -280,7 +297,7 @@ ifdef BUILDING_OUT_OF_SRC_TREE
 endif
 
 # ===========================================================================
-# Build targets: This includes axion, the platform target, clean
+# Build all targets: This includes axion, the platform target, clean
 # targets and others.
 
 PHONY += all
@@ -290,10 +307,12 @@ __all: all
 BUILD_DIRS := \
 	axion/
 
-# Include the platform layer's makefile.
-# This layer will add the platform layer directory to the
+BUILD_DIRS := $(patsubst %/,%,$(filter %/, $(BUILD_DIRS)))
+
+# Include the platform layer's platform.mk file.
+# This file will add the platform layer directory to the
 # list of directories to build (BUILD_DIRS).
-# include platform/$(PLATFORM)/makefile
+include platform/$(PLATFORM)/platform.mk
 
 # Execute the build process.
 all: descend
@@ -307,9 +326,9 @@ $(BUILD_DIRS): prepare
 
 # Build preparation.
 PHONY += prepare
-prepare: outputmakefile
+prepare: fixdep | makefile
 
-endif # ifeq ($(need-sub-make),)
+endif # ifeq ($(NEED_SUB_MAKE),)
 
 # Declare the contents of the PHONY variable as phony.  We keep that
 # information in a variable so we can use it in if_changed and friends.

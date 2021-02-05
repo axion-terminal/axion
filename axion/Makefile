@@ -1,10 +1,4 @@
-TARGET := axion$(SO_EXT)
+TARGET := axion_app
+TYPE := shared
 
-OBJ := \
-	src/main.o
-OBJ := $(addprefix $(BUILD_DIR), $(OBJ))
-
-all: $(TARGET)
-
-$(TARGET): $(OBJ)
-	$(call link_shared)
+OBJ := src/main.o

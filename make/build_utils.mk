@@ -202,16 +202,16 @@ make-cmd = $(call escsq,$(subst $(pound),$$(pound),$(subst $$,$$$$,$(cmd_$(1))))
 newer-prereqs = $(filter-out $(PHONY),$?)
 
 # Execute command if command has changed or prerequisite(s) are updated.
-if_changed = $(if $(newer-prereqs)$(cmd-check),                              \
-	$(cmd);                                                              \
+if_changed = $(if $(newer-prereqs)$(cmd-check),                           \
+	$(cmd);                                                               \
 	printf '%s\n' 'cmd_$@ := $(make-cmd)' > $(dot-target).cmd, @:)
 
 # Execute the command and also postprocess generated .d dependencies file.
 if_changed_dep = $(if $(newer-prereqs)$(cmd-check),$(cmd_and_fixdep),@:)
 
-cmd_and_fixdep =                                                             \
-	$(cmd);                                                              \
-	scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd;\
+cmd_and_fixdep =                                                          \
+	$(cmd);                                                               \
+	scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd; \
 	rm -f $(depfile)
 
 # Usage: $(call if_changed_rule,foo)
@@ -238,7 +238,7 @@ if_changed_rule = $(if $(newer-prereqs)$(cmd-check),$(rule_$(1)),@:)
 # (5) No dir/.target.cmd file (used to store command line)
 # (6) No dir/.target.cmd file and target not listed in $(targets)
 #     This is a good hint that there is a bug in the kbuild file
-ifeq ($(KBUILD_VERBOSE),2)
+ifeq ($(VERBOSE),2)
 why =                                                                        \
     $(if $(filter $@, $(PHONY)),- due to target is PHONY,                    \
         $(if $(wildcard $@),                                                 \
