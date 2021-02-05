@@ -150,16 +150,16 @@ ld-ifversion = $(shell [ $(ld-version) $(1) $(2) ] && echo $(3) || echo $(4))
 ######
 
 ###
-# Shorthand for $(Q)$(MAKE) -f make/build.mk BUILD_DIR=
+# Shorthand for $(Q)$(MAKE) -f make/build.mk DIR=
 # Usage:
 # $(Q)$(MAKE) $(build)=dir
-build := -f $(SRC_TREE)/make/build.mk BUILD_DIR
+build := -f $(SRC_TREE)/make/build.mk DIR
 
 ###
-# Shorthand for $(Q)$(MAKE) -f make/clean.mk BUILD_DIR=
+# Shorthand for $(Q)$(MAKE) -f make/clean.mk DIR=
 # Usage:
 # $(Q)$(MAKE) $(clean)=dir
-clean := -f $(SRC_TREE)/make/clean.mk BUILD_DIR
+clean := -f $(SRC_TREE)/make/clean.mk DIR
 
 # echo command.
 # Short version is used, if $(quiet) equals `quiet_', otherwise full one.
@@ -167,7 +167,10 @@ echo-cmd = $(if $($(quiet)cmd_$(1)),\
 	echo '  $(call escsq,$($(quiet)cmd_$(1)))$(echo-why)';)
 
 # printing commands
-cmd = @set -e; $(echo-cmd) $(cmd_$(1))
+cmd = @set -e; \
+	  $(echo-cmd) \
+	  mkdir -p $(dir $@); \
+	  $(cmd_$(1))
 
 ###
 # if_changed      - execute command if any prerequisite is newer than
@@ -209,9 +212,9 @@ if_changed = $(if $(newer-prereqs)$(cmd-check),                           \
 # Execute the command and also postprocess generated .d dependencies file.
 if_changed_dep = $(if $(newer-prereqs)$(cmd-check),$(cmd_and_fixdep),@:)
 
-cmd_and_fixdep =                                                          \
-	$(cmd);                                                               \
-	scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd; \
+cmd_and_fixdep =                                                       \
+	$(cmd);                                                            \
+	$(FIXDEP) $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd; \
 	rm -f $(depfile)
 
 # Usage: $(call if_changed_rule,foo)

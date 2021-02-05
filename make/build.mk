@@ -3,20 +3,20 @@ __all:
 
 include make/build_utils.mk
 
-# Consts.
-OUT_DIR := out
-
-# Include the built directory's makefile.
-include $(SRC_TREE)/$(BUILD_DIR)/makefile
+# Include the currently built directory's makefile.
+include $(DIR)/makefile
 
 # Determine the build target extension.
 ifeq ($(TYPE), exe)
+  BUILD_TARGET_DIR := $(BIN_DIR)
   EXT := $(EXE_EXT)
   BUILD_TARGET_CMD := link_exe
 else ifeq ($(TYPE), shared)
+  BUILD_TARGET_DIR := $(LIB_DIR)
   EXT := $(SHARED_EXT)
   BUILD_TARGET_CMD:= link_shared
 else ifeq ($(TYPE), static)
+  BUILD_TARGET_DIR := $(LIB_DIR)
   EXT := $(STATIC_EXT)
   BUILD_TARGET_CMD := ar
 else
@@ -28,14 +28,14 @@ BUILD_TARGET := $(TARGET)
 ifneq ($(EXT),)
   BUILD_TARGET := $(addsuffix .$(EXT),$(BUILD_TARGET))
 endif
-BUILD_TARGET := $(addprefix out/,$(BUILD_TARGET))
+BUILD_TARGET := $(addprefix $(BUILD_TARGET_DIR)/,$(BUILD_TARGET))
 # Subdirectories we need to descend into.
 BUILD_SUBDIRS := $(filter %/, $(OBJ))
 # Object files to build.
 BUILD_OBJ := $(filter-out $(BUILD_SUBDIRS), $(OBJ))
-# Append the build directory to each build item.
-BUILD_SUBDIRS := $(addprefix $(BUILD_DIR)/,$(patsubst %/,%,$(BUILD_SUBDIRS)))
-BUILD_OBJ := $(addprefix $(BUILD_DIR)/,$(BUILD_OBJ))
+# Append the currently built directory to each build item.
+BUILD_SUBDIRS := $(addprefix $(SRC_TREE)/$(DIR)/,$(patsubst %/,%,$(BUILD_SUBDIRS)))
+BUILD_OBJ := $(addprefix $(OBJ_DIR)/$(DIR)/,$(BUILD_OBJ))
 
 # Build process starts here.
 PHONY += all
@@ -52,23 +52,15 @@ quiet_cmd_link_shared = LD   $@
 quiet_cmd_ar = AR   $@
       cmd_ar = $(AR) $(real-prereqs) -o $@
 
-$(BUILD_TARGET): $(BUILD_OBJ) FORCE | $(OUT_DIR)
+$(BUILD_TARGET): $(BUILD_OBJ) FORCE
 	$(call if_changed,$(BUILD_TARGET_CMD))
-
-$(OUT_DIR):
-	$(Q)mkdir -p $(OUT_DIR)
 
 # Build the C files.
 quiet_cmd_cc_o_c = CC   $@
-      cmd_cc_o_c = $(CC) $(CFLAGS) -c $< -o $@
+      cmd_cc_o_c = $(CC) $(CFLAGS) -Wp,-MMD,$(depfile) -c $< -o $@
 
-define rule_cc_o_c
-	$(Q)mkdir -p $(dir $@)
-	$(call cmd,cc_o_c)
-endef
-
-$(BUILD_DIR)/%.o: $(SRC_TREE)/$(BUILD_DIR)/%.c FORCE
-	$(call if_changed_rule,cc_o_c)
+$(OBJ_DIR)/%.o: $(SRC_TREE)/%.c FORCE
+	$(call if_changed_dep,cc_o_c)
 
 # Descent and build each build sub-directory.
 PHONY := descend $(BUILD_SUBDIRS)
@@ -80,5 +72,11 @@ $(BUILD_SUBDIRS):
 # ---------------------------------------------------------------------------
 PHONY += FORCE
 FORCE:
+
+
+# Include all command files, if there are any.
+TARGETS := $(BUILD_TARGET) $(BUILD_OBJ)
+EXISTING_TARGETS := $(wildcard $(sort $(TARGETS)))
+-include $(foreach f,$(EXISTING_TARGETS),$(dir $(f)).$(notdir $(f)).cmd)
 
 .PHONY: $(PHONY)

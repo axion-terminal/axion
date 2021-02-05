@@ -113,38 +113,40 @@ export quiet Q VERBOSE
 # The O= assignment takes precedence over the OUTPUT_DIR environment
 # variable.
 
+ABS_SRC_TREE := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
+
 # Do we want to change the working directory?
 ifeq ("$(origin O)", "command line")
   OUTPUT_DIR := $(O)
+else
+  OUTPUT_DIR := $(ABS_SRC_TREE)/build
 endif
 
 ifneq ($(OUTPUT_DIR),)
 # Make's built-in functions such as $(abspath ...), $(realpath ...) cannot
 # expand a shell special character '~'. We use a somewhat tedious way here.
-ABS_OBJ_TREE := $(shell mkdir -p $(OUTPUT_DIR) && cd $(OUTPUT_DIR) && pwd)
-$(if $(ABS_OBJ_TREE),, \
+ABS_BUILD_TREE := $(shell mkdir -p $(OUTPUT_DIR) && cd $(OUTPUT_DIR) && pwd)
+$(if $(ABS_BUILD_TREE),, \
      $(error failed to create output directory "$(OUTPUT_DIR)"))
 
 # $(realpath ...) resolves symlinks
-ABS_OBJ_TREE := $(realpath $(ABS_OBJ_TREE))
+ABS_BUILD_TREE := $(realpath $(ABS_BUILD_TREE))
 else
-ABS_OBJ_TREE := $(CURDIR)
+ABS_BUILD_TREE := $(CURDIR)
 endif # ifneq ($(OUTPUT_DIR),)
 
-ifeq ($(ABS_OBJ_TREE),$(CURDIR))
+ifeq ($(ABS_BUILD_TREE),$(CURDIR))
 # Suppress "Entering directory ..." unless we are changing the work directory.
 MAKEFLAGS += --no-print-directory
 else
 NEED_SUB_MAKE := 1
 endif
 
-ABS_SRC_TREE := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-
 ifneq ($(words $(subst :, ,$(ABS_SRC_TREE))), 1)
 $(error source directory cannot contain spaces or colons)
 endif
 
-ifneq ($(ABS_SRC_TREE),$(ABS_OBJ_TREE))
+ifneq ($(ABS_SRC_TREE),$(ABS_BUILD_TREE))
 # Look for make include files relative to root of kernel src
 #
 # This does not become effective immediately because MAKEFLAGS is re-parsed
@@ -163,7 +165,7 @@ NEED_SUB_MAKE := 1
 $(this-makefile): ;
 endif
 
-export ABS_SRC_TREE ABS_OBJ_TREE
+export ABS_SRC_TREE ABS_BUILD_TREE
 export SUB_MAKE_DONE := 1
 
 ifeq ($(NEED_SUB_MAKE),1)
@@ -175,7 +177,7 @@ $(filter-out $(this-makefile), $(MAKECMDGOALS)) __all: __sub-make
 
 # Invoke a second make in the output directory, passing relevant variables
 __sub-make:
-	$(Q)$(MAKE) -C $(ABS_OBJ_TREE) -f $(ABS_SRC_TREE)/Makefile $(MAKECMDGOALS)
+	$(Q)$(MAKE) -C $(ABS_BUILD_TREE) -f $(ABS_SRC_TREE)/Makefile $(MAKECMDGOALS)
 
 endif # NEED_SUB_MAKE
 endif # SUB_MAKE_DONE
@@ -188,12 +190,12 @@ ifeq ($(NEED_SUB_MAKE),)
 # so that IDEs/editors are able to understand relative filenames.
 MAKEFLAGS += --no-print-directory
 
-ifeq ($(ABS_SRC_TREE),$(ABS_OBJ_TREE))
+ifeq ($(ABS_SRC_TREE),$(ABS_BUILD_TREE))
   # building in the source tree
   SRC_TREE := .
   BUILDING_OUT_OF_SRC_TREE :=
 else
-  ifeq ($(ABS_SRC_TREE)/,$(dir $(ABS_OBJ_TREE)))
+  ifeq ($(ABS_SRC_TREE)/,$(dir $(ABS_BUILD_TREE)))
     # building in a subdirectory of the source tree
     SRC_TREE := ..
   else
@@ -206,9 +208,14 @@ ifneq ($(ABS_SRC_TREE),)
   SRC_TREE := $(ABS_SRC_TREE)
 endif
 
-OBJ_TREE := .
+BUILD_TREE := .
 
-export BUILDING_OUT_OF_SRC_TREE SRC_TREE OBJ_TREE
+BIN_DIR := bin
+LIB_DIR := lib
+OBJ_DIR := obj
+
+export BUILDING_OUT_OF_SRC_TREE SRC_TREE BUILD_TREE
+export BIN_DIR LIB_DIR OBJ_DIR
 
 include make/build_utils.mk
 
@@ -269,9 +276,26 @@ export EXE_EXT SHARED_EXT ARCHIVE_EXT
 
 # ===========================================================================
 # Build preparation.
-PHONY += fixdep
-fixdep:
-	$(Q)$(MAKE) $(build)=$@
+
+# Build fixdep.
+FIXDEP := $(BIN_DIR)/fixdep
+FIXDEP_OBJ := $(OBJ_DIR)/fixdep/src/fixdep.o
+
+quiet_cmd_fixdep_link = LD   $@
+      cmd_fixdep_link = $(LD) $(LDFLAGS) $(real-prereqs) -o $@
+
+$(FIXDEP): $(FIXDEP_OBJ)
+	$(Q)mkdir -p $(dir $@)
+	$(call cmd,fixdep_link)
+
+quiet_cmd_fixdep_cc_o_c = CC   $@
+      cmd_fixdep_cc_o_c = $(CC) -c $< -o $@
+	  
+$(OBJ_DIR)/fixdep/%.o: $(SRC_TREE)/fixdep/%.c
+	$(Q)mkdir -p $(dir $@)
+	$(call cmd,fixdep_cc_o_c)
+
+export FIXDEP
 
 # Before starting out-of-tree build, make sure the source tree is clean.
 # outputmakefile generates a Makefile in the output directory, if using a
@@ -326,7 +350,7 @@ $(BUILD_DIRS): prepare
 
 # Build preparation.
 PHONY += prepare
-prepare: fixdep | makefile
+prepare: $(FIXDEP) | makefile
 
 endif # ifeq ($(NEED_SUB_MAKE),)
 
