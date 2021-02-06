@@ -68,13 +68,12 @@ descend: $(BUILD_SUBDIRS)
 $(BUILD_SUBDIRS):
 	$(Q)$(MAKE) $(build)=$@
 
-# Add FORCE to the prequisites of a target to force it to be always rebuilt.
+# Add FORCE to the prerequisites of a target to force it to be always rebuilt.
 # ---------------------------------------------------------------------------
 PHONY += FORCE
 FORCE:
 
-
-# Include all command files, if there are any.
+# Include all .cmd files, if there are any.
 TARGETS := $(BUILD_TARGET) $(BUILD_OBJ)
 EXISTING_TARGETS := $(wildcard $(sort $(TARGETS)))
 -include $(foreach f,$(EXISTING_TARGETS),$(dir $(f)).$(notdir $(f)).cmd)

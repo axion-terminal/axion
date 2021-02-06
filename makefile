@@ -1,9 +1,3 @@
-# *DOCUMENTATION*
-# To see a list of typical targets execute "make help"
-# More info can be located in ./README
-# Comments in this file are targeted only to the developer, do not
-# expect to learn how to build the kernel reading this file.
-
 $(if $(filter __%, $(MAKECMDGOALS)), \
 	$(error targets prefixed with '__' are only for internal use))
 
@@ -188,7 +182,7 @@ ifeq ($(NEED_SUB_MAKE),)
 # Do not print "Entering directory ...",
 # but we want to display it when entering to the output directory
 # so that IDEs/editors are able to understand relative filenames.
-MAKEFLAGS += --no-print-directory
+# MAKEFLAGS += --no-print-directory
 
 ifeq ($(ABS_SRC_TREE),$(ABS_BUILD_TREE))
   # building in the source tree
@@ -225,7 +219,7 @@ include make/infer_platform.mk
 CPP = $(CC) -E
 ifneq ($(GNU),)
   CC := gcc
-  LD := ld
+  LD := $(CC) # TODO: We might want to use ld in the future.
   AR := ar
   NM := nm
   OBJCOPY := objcopy
@@ -234,7 +228,7 @@ ifneq ($(GNU),)
   STRIP := strip
 else
   CC := clang
-  LD = $(CC) # Might to use ld.lld in the future.
+  LD = $(CC) # TODO: We might want to use ld.lld in the future.
   AR := llvm-ar
   NM := llvm-nm
   OBJCOPY := llvm-objcopy
@@ -284,36 +278,25 @@ FIXDEP_OBJ := $(OBJ_DIR)/fixdep/src/fixdep.o
 quiet_cmd_fixdep_link = LD   $@
       cmd_fixdep_link = $(LD) $(LDFLAGS) $(real-prereqs) -o $@
 
-$(FIXDEP): $(FIXDEP_OBJ)
-	$(Q)mkdir -p $(dir $@)
-	$(call cmd,fixdep_link)
+$(FIXDEP): $(FIXDEP_OBJ) FORCE
+	$(call if_changed,fixdep_link)
 
 quiet_cmd_fixdep_cc_o_c = CC   $@
       cmd_fixdep_cc_o_c = $(CC) -c $< -o $@
 	  
-$(OBJ_DIR)/fixdep/%.o: $(SRC_TREE)/fixdep/%.c
-	$(Q)mkdir -p $(dir $@)
-	$(call cmd,fixdep_cc_o_c)
+$(OBJ_DIR)/fixdep/%.o: $(SRC_TREE)/fixdep/%.c FORCE
+	$(call if_changed,fixdep_cc_o_c)
 
 export FIXDEP
 
 # Before starting out-of-tree build, make sure the source tree is clean.
-# outputmakefile generates a Makefile in the output directory, if using a
+# mkmakefile.sh generates a Makefile in the output directory, if using a
 # separate output directory. This allows convenient use of make in the
 # output directory.
 # At the same time when output Makefile generated, generate .gitignore to
 # ignore whole output directory
 ifdef BUILDING_OUT_OF_SRC_TREE
 makefile:
-	$(Q)if [ -f $(SRC_TREE)/.config -o \
-		 -d $(SRC_TREE)/include/config -o \
-		 -d $(SRC_TREE)/arch/$(SRCARCH)/include/generated ]; then \
-		echo >&2 "***"; \
-		echo >&2 "*** The source tree is not clean, please run 'make$(if $(findstring command line, $(origin ARCH)), ARCH=$(ARCH)) mrproper'"; \
-		echo >&2 "*** in $(ABS_SRC_TREE)";\
-		echo >&2 "***"; \
-		false; \
-	fi
 	$(Q)ln -fsn $(SRC_TREE) src
 	$(Q)$(SHELL) $(SRC_TREE)/scripts/mkmakefile.sh $(SRC_TREE)
 	$(Q)test -e .gitignore || \
@@ -352,7 +335,29 @@ $(BUILD_DIRS): prepare
 PHONY += prepare
 prepare: $(FIXDEP) | makefile
 
+# ===========================================================================
+# Build cleanup.
+
+PHONY += clean
+clean:
+	$(Q)rm -rf $(OBJ_DIR)
+
+PHONY += cleaner
+cleaner: clean
+	$(Q)rm -rf $(BIN_DIR)
+	$(Q)rm -rf $(LIB_DIR)
+
 endif # ifeq ($(NEED_SUB_MAKE),)
+
+# Add FORCE to the prerequisites of a target to force it to be always rebuilt.
+# ---------------------------------------------------------------------------
+PHONY += FORCE
+FORCE:
+
+# Include all .cmd files, if there are any.
+TARGETS := $(FIXDEP) $(FIXDEP_OBJ)
+EXISTING_TARGETS := $(wildcard $(sort $(TARGETS)))
+-include $(foreach f,$(EXISTING_TARGETS),$(dir $(f)).$(notdir $(f)).cmd)
 
 # Declare the contents of the PHONY variable as phony.  We keep that
 # information in a variable so we can use it in if_changed and friends.
