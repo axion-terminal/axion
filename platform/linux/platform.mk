@@ -1,0 +1,2 @@
+# Flags.
+CFLAGS += -DPLATFORM_LINUX
