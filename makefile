@@ -314,12 +314,13 @@ __all: all
 BUILD_DIRS := \
 	axion/
 
-BUILD_DIRS := $(patsubst %/,%,$(filter %/, $(BUILD_DIRS)))
-
 # Include the platform layer's platform.mk file.
 # This file will add the platform layer directory to the
 # list of directories to build (BUILD_DIRS).
 include platform/$(PLATFORM)/platform.mk
+
+# Remove the last '/' from each directory to build.
+BUILD_DIRS := $(patsubst %/,%,$(filter %/, $(BUILD_DIRS)))
 
 # Execute the build process.
 all: descend
