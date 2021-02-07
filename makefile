@@ -215,7 +215,7 @@ include make/build_utils.mk
 
 include make/infer_platform.mk
 
-# Make variables (CC, etc...)
+# Make toolchain (CC, etc...)
 CPP = $(CC) -E
 ifneq ($(GNU),)
   CC := gcc
@@ -239,8 +239,18 @@ endif
 
 SHELL := bash
 
+# Flags.
 CFLAGS := -Wall -Werror
 LDFLAGS :=
+
+# Include flags.
+INCLUDE_FLAGS := \
+	-I$(SRC_TREE)/axion/include
+
+# Target extensions.
+EXE_EXT :=
+SHARED_EXT := so
+ARCHIVE_EXT := a
 
 # Build mode setup.
 MODE_DEBUG := debug
@@ -258,14 +268,9 @@ else
   $(error Unsupported build mode: [$(MODE)])
 endif
 
-# Target extensions.
-EXE_EXT :=
-SHARED_EXT := so
-ARCHIVE_EXT :=
-
 export CPP CC LD AR NM OBJCOPY OBJDUMP READELF STRIP
 export SHELL
-export CFLAGS LDFLAGS
+export CFLAGS LDFLAGS INCLUDE_FLAGS
 export EXE_EXT SHARED_EXT ARCHIVE_EXT
 
 # ===========================================================================

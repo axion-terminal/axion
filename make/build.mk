@@ -37,6 +37,10 @@ BUILD_OBJ := $(filter-out $(BUILD_SUBDIRS), $(OBJ))
 BUILD_SUBDIRS := $(addprefix $(SRC_TREE)/$(DIR)/,$(patsubst %/,%,$(BUILD_SUBDIRS)))
 BUILD_OBJ := $(addprefix $(OBJ_DIR)/$(DIR)/,$(BUILD_OBJ))
 
+# Automatic target include directory.
+INCLUDE_FLAGS += -I$(SRC_TREE)/$(DIR)/include
+INCLUDE_FLAGS := $(sort $(INCLUDE_FLAGS))
+
 # Build process starts here.
 PHONY += all
 __all: all
@@ -57,7 +61,7 @@ $(BUILD_TARGET): $(BUILD_OBJ) FORCE
 
 # Build the C files.
 quiet_cmd_cc_o_c = CC   $@
-      cmd_cc_o_c = $(CC) $(CFLAGS) -Wp,-MMD,$(depfile) -c $< -o $@
+      cmd_cc_o_c = $(CC) $(CFLAGS) $(INCLUDE_FLAGS) -Wp,-MMD,$(depfile) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_TREE)/%.c FORCE
 	$(call if_changed_dep,cc_o_c)
