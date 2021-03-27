@@ -3,26 +3,26 @@ version(1);
 project_name = "axion";
 
 patterns = {
-"*.c",
-"*.cpp",
-"*.h",
-"*.m",
-"*.mm",
-"*.bat",
-"*.sh",
-"*.4coder",
-"*.txt",
+  "*.c",
+  "*.cpp",
+  "*.h",
+  "*.m",
+  "*.mm",
+  "*.bat",
+  "*.sh",
+  "*.4coder",
+  "*.txt",
 };
 blacklist_patterns = {
-".*",
+  ".*",
 };
 load_paths_axion = {
- {"."},
+  {"."},
 };
 load_paths = {
- { load_paths_axion, .os = "win"  },
- { load_paths_axion, .os = "linux"},
- { load_paths_axion, .os = "mac"  },
+  { load_paths_axion, .os = "win"  },
+  { load_paths_axion, .os = "linux"},
+  { load_paths_axion, .os = "mac"  },
 };
 
 command_list = {
