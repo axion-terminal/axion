@@ -1,40 +1,53 @@
-version(1);
-
+version(2);
 project_name = "axion";
 
 patterns = {
-  "*.c",
-  "*.cpp",
-  "*.h",
-  "*.m",
-  "*.mm",
-  "*.bat",
-  "*.sh",
-  "*.4coder",
-  "*.txt",
+    "*.c",
+    "*.cpp",
+    "*.h",
+    "*.m",
+    "*.mm",
+    "*.bat",
+    "*.sh",
+    "*.4coder",
+    "*.txt",
+    "*.md",
 };
 blacklist_patterns = {
-  ".*",
+    ".*",
 };
-load_paths_axion = {
-  {"."},
-};
+
+load_path_shared = { .path = ".", .recursive = true, .relative = true, };
+
 load_paths = {
-  { load_paths_axion, .os = "win"  },
-  { load_paths_axion, .os = "linux"},
-  { load_paths_axion, .os = "mac"  },
+    .win = { load_path_shared },
+    .linux = { load_path_shared },
+    .mac = { load_path_shared },
 };
 
-command_list = {
-  {
-    .name = "build",
-    .out = "*compilation*", .footer_panel = true, .save_dirty_files = true,
-    .cmd = {
-      {"scripts/build_win.sh", .os = "win"},
-      {"scripts/build_linux.sh", .os = "linux"},
-      {"scripts/build_mac.sh", .os = "mac"},
+commands = {
+    .build_debug = {
+        .win = "scripts\\build_win.bat debug",
+        .linux = "scripts/build_linux.sh debug",
+        .mac = "scripts/build_mac.sh debug",
+        .out = "*compilation*",
+        .footer_panel = true,
+        .save_dirty_files = true,
+        .cursor_at_end = false,
     },
-  },
+    .build_release = {
+        .win = "scripts\\build_win.bat release",
+        .linux = "scripts/build_linux.sh release",
+        .mac = "scripts/build_mac.sh release",
+        .out = "*compilation*",
+        .footer_panel = true,
+        .save_dirty_files = true,
+        .cursor_at_end = false,
+    },
 };
 
-fkey_command[1] = "build";
+fkey_command = {
+    .F1 = "build_debug",
+    .F2 = "build_release",
+};
+
