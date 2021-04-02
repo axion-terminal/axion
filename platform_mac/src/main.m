@@ -54,14 +54,21 @@ int main(void) {
     [window makeKeyAndOrderFront:nil];
     
     for (;;) {
-        NSEvent *event;
-        do {
-            event = [NSApp nextEventMatchingMask:NSEventMaskAny
-                     untilDate:nil
-                     inMode:NSDefaultRunLoopMode
-                     dequeue:YES];
+        // Update the window events.
+        for (;;) {
+            NSEvent *event = [NSApp nextEventMatchingMask:NSEventMaskAny
+                              untilDate:nil
+                              inMode:NSDefaultRunLoopMode
+                              dequeue:YES];
+            if (nil == event) {
+                // No more events for us to process,
+                // break.
+                printf("No events!\n");
+                break;
+            }
+            
             [NSApp sendEvent:event];
-        } while (nil != event);
+        }
     }
     
     return 0;
