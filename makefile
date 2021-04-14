@@ -81,7 +81,7 @@ PHONY += $(AXION_DIR)
 $(AXION_DIR):
 	@$(MAKE) -f $(AXION_DIR)/makefile
 
-# Platform layer.
+# Platform layer target.
 all: $(PLATFORM_LAYER_DIR)
 
 PHONY += $(PLATFORM_LAYER_DIR)
